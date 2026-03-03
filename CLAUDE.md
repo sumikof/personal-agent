@@ -1,7 +1,6 @@
-# {システム名} - Waterfall Spec-Driven Development
+# Personal Agent - Waterfall Spec-Driven Development
 
-> 目的: {システムの目的}
-> 技術スタック: {言語 / FW / DB / インフラ}
+> チャットで話しかけるだけで、Redmineのタスク管理・スケジュール調整・情報収集を代行するパーソナルAIエージェントです。目的: {システムの目的}
 
 @document-list.md
 
