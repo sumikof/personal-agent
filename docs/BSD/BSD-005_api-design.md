@@ -3,10 +3,11 @@
 | 項目 | 内容 |
 |---|---|
 | ドキュメントID | BSD-005 |
-| バージョン | 1.0 |
+| バージョン | 1.1 |
 | 作成日 | 2026-03-03 |
+| 更新日 | 2026-03-03 |
 | 入力元 | REQ-003, REQ-005, REQ-007 |
-| ステータス | 初版 |
+| ステータス | レビュー修正済（REV-001 ISS-001/ISS-003対応） |
 | プロジェクト | PRJ-001 personal-agent |
 
 ---
@@ -28,7 +29,7 @@
 | ヘッダー | 説明 | 必須 |
 |---|---|---|
 | `Content-Type` | `application/json` | ○（POST/PUT/PATCH 時） |
-| `Authorization` | `Bearer {access_token}` | ○（認証必須エンドポイント） |
+| `Authorization` | `Bearer {access_token}` | フェーズ2以降（フェーズ1では認証不要のため省略可） |
 | `Accept` | `application/json` または `text/event-stream`（SSE 時） | - |
 
 **レスポンス形式（成功）:**
@@ -77,30 +78,34 @@
 
 ## 2. エンドポイント一覧
 
+> **フェーズ1 スコープ注記**: REQ-004（NFR-SEC-05）および BSD-001/BSD-002（CON-B-01）の定義により、フェーズ1ではシングルユーザー・ローカル環境のため認証機能は不要。No.1〜5（認証・ユーザー管理）はフェーズ2スコープとして保留する。
+
 | No. | HTTPメソッド | エンドポイント | 機能概要 | 認証要否 | 関連コンテキスト |
 |---|---|---|---|---|---|
-| 1 | POST | `/api/v1/auth/login` | ログイン（JWT発行） | 不要 | CTX-003 |
-| 2 | POST | `/api/v1/auth/logout` | ログアウト（トークン無効化） | 要 | CTX-003 |
-| 3 | POST | `/api/v1/auth/refresh` | アクセストークン更新 | 不要（リフレッシュトークン必要） | CTX-003 |
-| 4 | GET | `/api/v1/users/me` | ログインユーザー情報取得 | 要 | CTX-003 |
-| 5 | PUT | `/api/v1/users/me` | ログインユーザー情報更新 | 要 | CTX-003 |
-| 6 | GET | `/api/v1/tasks` | タスク一覧取得 | 要 | CTX-001 |
-| 7 | POST | `/api/v1/tasks` | タスク作成 | 要 | CTX-001 |
-| 8 | GET | `/api/v1/tasks/{id}` | タスク詳細取得 | 要 | CTX-001 |
-| 9 | PUT | `/api/v1/tasks/{id}` | タスク更新 | 要 | CTX-001 |
-| 10 | DELETE | `/api/v1/tasks/{id}` | タスク削除 | 要 | CTX-001 |
-| 11 | GET | `/api/v1/conversations` | 会話一覧取得 | 要 | CTX-002 |
-| 12 | POST | `/api/v1/conversations` | 新規会話開始 | 要 | CTX-002 |
-| 13 | GET | `/api/v1/conversations/{id}` | 会話詳細・メッセージ履歴取得 | 要 | CTX-002 |
-| 14 | POST | `/api/v1/conversations/{id}/messages` | メッセージ送信（エージェント実行） | 要 | CTX-002 |
-| 15 | DELETE | `/api/v1/conversations/{id}` | 会話削除 | 要 | CTX-002 |
+| 1 | POST | `/api/v1/auth/login` | ログイン（JWT発行）**[フェーズ2スコープ]** | 不要 | CTX-003 |
+| 2 | POST | `/api/v1/auth/logout` | ログアウト（トークン無効化）**[フェーズ2スコープ]** | 要 | CTX-003 |
+| 3 | POST | `/api/v1/auth/refresh` | アクセストークン更新 **[フェーズ2スコープ]** | 不要（リフレッシュトークン必要） | CTX-003 |
+| 4 | GET | `/api/v1/users/me` | ログインユーザー情報取得 **[フェーズ2スコープ]** | 要 | CTX-003 |
+| 5 | PUT | `/api/v1/users/me` | ログインユーザー情報更新 **[フェーズ2スコープ]** | 要 | CTX-003 |
+| 6 | GET | `/api/v1/tasks` | タスク一覧取得 | 不要（フェーズ1） | CTX-001 |
+| 7 | POST | `/api/v1/tasks` | タスク作成 | 不要（フェーズ1） | CTX-001 |
+| 8 | GET | `/api/v1/tasks/{id}` | タスク詳細取得 | 不要（フェーズ1） | CTX-001 |
+| 9 | PUT | `/api/v1/tasks/{id}` | タスク更新 | 不要（フェーズ1） | CTX-001 |
+| 10 | DELETE | `/api/v1/tasks/{id}` | タスク削除 ※**エージェントから呼び出し禁止（BR-02）** | 不要（フェーズ1） | CTX-001 |
+| 11 | GET | `/api/v1/conversations` | 会話一覧取得 | 不要（フェーズ1） | CTX-002 |
+| 12 | POST | `/api/v1/conversations` | 新規会話開始 | 不要（フェーズ1） | CTX-002 |
+| 13 | GET | `/api/v1/conversations/{id}` | 会話詳細・メッセージ履歴取得 | 不要（フェーズ1） | CTX-002 |
+| 14 | POST | `/api/v1/conversations/{id}/messages` | メッセージ送信（エージェント実行） | 不要（フェーズ1） | CTX-002 |
+| 15 | DELETE | `/api/v1/conversations/{id}` | 会話削除 | 不要（フェーズ1） | CTX-002 |
 | 16 | GET | `/api/v1/health` | ヘルスチェック | 不要 | システム |
 
 ---
 
 ## 3. エンドポイント詳細
 
-### 1. POST `/api/v1/auth/login`
+### 1. POST `/api/v1/auth/login` **[フェーズ2スコープ]**
+
+> **注意**: フェーズ1ではシングルユーザー・ローカル環境のため、このエンドポイントは実装しない（REQ-004 NFR-SEC-05、BSD-001/BSD-002 CON-B-01 に基づく）。フェーズ2以降に認証機能を追加する際に実装すること。
 
 **概要**: メールアドレスとパスワードによるログイン認証を行い、JWT アクセストークンとリフレッシュトークンを発行する
 **認証**: 不要

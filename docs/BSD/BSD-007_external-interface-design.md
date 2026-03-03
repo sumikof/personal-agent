@@ -3,10 +3,11 @@
 | 項目 | 内容 |
 |---|---|
 | ドキュメントID | BSD-007 |
-| バージョン | 1.0 |
+| バージョン | 1.1 |
 | 作成日 | 2026-03-03 |
+| 更新日 | 2026-03-03 |
 | 入力元 | REQ-007 |
-| ステータス | 初版 |
+| ステータス | レビュー修正済（REV-001 ISS-003対応） |
 | プロジェクト | PRJ-001 personal-agent |
 
 ---
@@ -66,7 +67,7 @@ personal-agent が連携する外部システムは以下の2つである:
 | 2 | `get_issue` | GET `/issues/{id}.json` | タスク詳細取得 | 15秒 |
 | 3 | `create_issue` | POST `/issues.json` | 新規タスク作成 | 30秒 |
 | 4 | `update_issue` | PUT `/issues/{id}.json` | タスク更新（ステータス・内容・担当者等） | 30秒 |
-| 5 | `delete_issue` | DELETE `/issues/{id}.json` | タスク削除 | 15秒 |
+| 5 | `delete_issue` | DELETE `/issues/{id}.json` | タスク削除 ⚠️ **このツールはエージェントから直接呼び出してはならない（BR-02準拠）。Redmine Web UI からの手動操作専用** | 15秒 |
 | 6 | `list_projects` | GET `/projects.json` | プロジェクト一覧取得 | 15秒 |
 | 7 | `list_users` | GET `/users.json` | ユーザー一覧取得（担当者候補） | 15秒 |
 
