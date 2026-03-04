@@ -93,10 +93,10 @@ class TestCreateIssueRetry:
         redmine_adapter: RedmineAdapter,
         httpx_mock: pytest_httpx.HTTPXMock,
     ) -> None:
-        """TC-016: HTTP 503 で 3 回リトライして RedmineAPIError
+        """TC-016: HTTP 503 で 3 回リトライして RedmineConnectionError
         Given: Redmine が 503 Service Unavailable を返し続ける
         When: create_issue を呼び出す
-        Then: 3 回リトライ後に RedmineAPIError が発生する
+        Then: 3 回リトライ後に RedmineConnectionError が発生する（5xx はサーバー側の問題として扱う）
         """
         # Given: 3 回すべて 503 を返す
         for _ in range(3):
@@ -107,7 +107,7 @@ class TestCreateIssueRetry:
             )
 
         # When / Then
-        with pytest.raises(RedmineAPIError):
+        with pytest.raises(RedmineConnectionError):
             await redmine_adapter.create_issue(
                 subject="テストタスク",
                 project_id=1,

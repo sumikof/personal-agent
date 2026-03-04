@@ -134,6 +134,11 @@ class RedmineAdapter:
 
         # 全リトライ失敗
         logger.error("redmine_all_retries_failed max_retries=%d url=%s", MAX_RETRY_COUNT, url)
+        # 5xx エラーによるリトライ失敗は RedmineConnectionError として返す（サーバー側の問題）
+        if isinstance(last_error, RedmineAPIError) and last_error.status_code >= 500:
+            raise RedmineConnectionError(
+                f"Redmine サーバーが応答しません（HTTP {last_error.status_code}）"
+            )
         raise last_error or RedmineConnectionError("Redmine への接続に失敗しました")
 
     async def create_issue(
@@ -274,3 +279,63 @@ class RedmineAdapter:
 
         # 更新後の最新状態を GET で取得して返す
         return await self.get_issue(issue_id)
+
+    async def list_issues(
+        self,
+        status_id: str = "open",
+        limit: int = 25,
+        offset: int = 0,
+        due_date: str | None = None,
+        subject_like: str | None = None,
+        project_id: int | None = None,
+    ) -> dict:
+        """Redmine から Issue（チケット）の一覧を取得する（FEAT-002）。
+
+        Args:
+            status_id: ステータスフィルタ（"open"/"closed"/"*" など）。デフォルト: "open"。
+            limit: 取得件数上限（デフォルト: 25）。
+            offset: 取得開始位置（ページネーション用）。
+            due_date: 期日フィルタ（YYYY-MM-DD 形式）。
+            subject_like: タイトル部分一致検索キーワード（Redmine の subject パラメータ）。
+            project_id: プロジェクト ID フィルタ。
+
+        Returns:
+            Redmine API レスポンスの辞書。キー: issues, total_count, offset, limit。
+
+        Raises:
+            RedmineConnectionError: 接続タイムアウト・ネットワークエラーの場合。
+            RedmineAuthError: API キーが無効な場合（HTTP 401）。
+            RedmineNotFoundError: プロジェクトが存在しない場合（HTTP 404）。
+            RedmineAPIError: その他の API エラーの場合。
+        """
+        url = f"{self._base_url}/issues.json"
+
+        # クエリパラメータ構築
+        params: dict[str, str | int] = {
+            "status_id": status_id,
+            "limit": limit,
+            "offset": offset,
+        }
+        if due_date is not None:
+            params["due_date"] = due_date
+        if subject_like is not None:
+            # Redmine の subject パラメータとして渡す
+            params["subject"] = subject_like
+        if project_id is not None:
+            params["project_id"] = project_id
+
+        logger.debug(
+            "redmine_list_issues status_id=%s limit=%d offset=%d",
+            status_id,
+            limit,
+            offset,
+        )
+
+        response = await self._retry_request("GET", url, params=params)
+
+        logger.debug(
+            "redmine_list_issues_succeeded status_code=%d",
+            response.status_code,
+        )
+
+        return response.json()
