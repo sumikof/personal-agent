@@ -11,6 +11,7 @@ from app.domain.exceptions import (
     RedmineAuthError,
     RedmineConnectionError,
     RedmineNotFoundError,
+    TaskNotFoundError,
 )
 
 logger = logging.getLogger(__name__)
@@ -194,3 +195,82 @@ class RedmineAdapter:
         )
 
         return response.json()
+
+    async def get_issue(self, issue_id: int) -> dict:
+        """Redmine から Issue（チケット）を取得する（FEAT-003）。
+
+        Args:
+            issue_id: 取得対象の Redmine Issue ID。
+
+        Returns:
+            Redmine API レスポンスの辞書（"issue" キーを含む）。
+
+        Raises:
+            TaskNotFoundError: チケットが存在しない場合（HTTP 404）。
+            RedmineConnectionError: 接続タイムアウト・ネットワークエラーの場合。
+            RedmineAuthError: API キーが無効な場合（HTTP 401）。
+            RedmineAPIError: その他の API エラーの場合。
+        """
+        url = f"{self._base_url}/issues/{issue_id}.json"
+
+        logger.debug("redmine_get_issue issue_id=%d", issue_id)
+
+        try:
+            response = await self._retry_request("GET", url)
+        except RedmineNotFoundError:
+            raise TaskNotFoundError(issue_id)
+        except RedmineConnectionError:
+            raise
+
+        logger.debug(
+            "redmine_get_issue_succeeded issue_id=%d status_code=%d",
+            issue_id,
+            response.status_code,
+        )
+
+        return response.json()
+
+    async def update_issue(self, issue_id: int, payload: dict) -> dict:
+        """Redmine の Issue（チケット）を更新する（FEAT-003）。
+
+        Redmine の PUT /issues/{id}.json は成功時に 204 No Content を返すため、
+        更新後に GET /issues/{id}.json で最新状態を取得して返す。
+
+        Args:
+            issue_id: 更新対象の Redmine Issue ID。
+            payload: 更新内容（{"issue": {...}} 形式）。
+
+        Returns:
+            更新後の Redmine API レスポンスの辞書（"issue" キーを含む）。
+
+        Raises:
+            TaskNotFoundError: チケットが存在しない場合（HTTP 404）。
+            ValueError: Redmine バリデーションエラーの場合（HTTP 422）。
+            RedmineConnectionError: 接続タイムアウト・ネットワークエラーの場合。
+            RedmineAuthError: API キーが無効な場合（HTTP 401）。
+            RedmineAPIError: その他の API エラーの場合。
+        """
+        url = f"{self._base_url}/issues/{issue_id}.json"
+
+        logger.debug(
+            "redmine_update_issue issue_id=%d payload_keys=%s",
+            issue_id,
+            list(payload.get("issue", {}).keys()),
+        )
+
+        try:
+            await self._retry_request("PUT", url, json=payload)
+        except RedmineNotFoundError:
+            raise TaskNotFoundError(issue_id)
+        except RedmineAPIError as e:
+            # 422 バリデーションエラーは ValueError として再送出
+            if e.status_code == 422:
+                raise ValueError(str(e.message)) from e
+            raise
+        except RedmineConnectionError:
+            raise
+
+        logger.info("redmine_update_issue_succeeded issue_id=%d", issue_id)
+
+        # 更新後の最新状態を GET で取得して返す
+        return await self.get_issue(issue_id)
