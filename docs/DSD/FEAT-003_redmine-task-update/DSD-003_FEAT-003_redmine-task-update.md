@@ -275,7 +275,7 @@ class UpdateTaskRequest(BaseModel):
     status_id: Optional[int] = Field(
         default=None,
         ge=1,
-        description="ステータスID（1=未着手, 2=進行中, 3=完了, 5=却下）",
+        description="ステータスID（環境変数 REDMINE_STATUS_ID_* で設定した値のいずれか）",
     )
     notes: Optional[str] = Field(
         default=None,
@@ -294,9 +294,10 @@ class UpdateTaskRequest(BaseModel):
 
     @validator("status_id")
     def validate_status_id(cls, v: Optional[int]) -> Optional[int]:
-        if v is not None and v not in {1, 2, 3, 5}:
+        if v is not None and not TaskStatus.validate_id(v):
+            valid_ids = list(TaskStatus._status_map().keys())
             raise ValueError(
-                f"無効なステータスID: {v}。有効値: 1=未着手, 2=進行中, 3=完了, 5=却下"
+                f"無効なステータスID: {v}。有効値: {valid_ids}（環境変数 REDMINE_STATUS_ID_* で設定）"
             )
         return v
 
@@ -381,7 +382,7 @@ async def update_task(
 
 | フィールド | バリデーションルール | エラーコード | エラーメッセージ |
 |---|---|---|---|
-| `status_id` | {1, 2, 3, 5}のいずれか | `VALIDATION_ERROR` | 「無効なステータスID: {value}。有効値: 1=未着手, 2=進行中, 3=完了, 5=却下」 |
+| `status_id` | 環境変数 `REDMINE_STATUS_ID_*` で設定した有効値のいずれか | `VALIDATION_ERROR` | 「無効なステータスID: {value}。有効値: {valid_ids}（環境変数 REDMINE_STATUS_ID_* で設定）」 |
 | `status` | `open`, `in_progress`, `closed`, `rejected`のいずれか | `VALIDATION_ERROR` | 「無効なステータス名: {value}」 |
 | `status` と `status_id` | 同時指定不可 | `VALIDATION_ERROR` | 「statusとstatus_idは同時に指定できません」 |
 | `notes` | 空文字・スペースのみ不可 | `VALIDATION_ERROR` | 「コメントは空にできません」 |

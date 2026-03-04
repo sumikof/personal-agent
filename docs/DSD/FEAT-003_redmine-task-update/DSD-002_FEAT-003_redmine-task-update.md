@@ -70,10 +70,10 @@ app/
 │       └── page.tsx               # チャット画面ページ
 └── components/
     ├── chat/
-    │   ├── ChatContainer.tsx       # チャット全体のコンテナ（状態管理の上位）
-    │   ├── ChatMessageList.tsx     # メッセージ一覧表示
-    │   ├── ChatMessage.tsx         # 個別メッセージバブル（user/assistant）
-    │   ├── ChatInput.tsx           # 入力欄と送信ボタン
+    │   ├── ChatWindow.tsx       # チャット全体のコンテナ（状態管理の上位）
+    │   ├── MessageList.tsx     # メッセージ一覧表示
+    │   ├── MessageBubble.tsx       # 個別メッセージバブル（user/assistant）
+    │   ├── MessageInput.tsx           # 入力欄と送信ボタン
     │   ├── AgentThinkingIndicator.tsx  # エージェント実行中インジケータ
     │   ├── ToolCallBadge.tsx       # ツール呼び出し状態バッジ
     │   └── TaskUpdateConfirmation.tsx  # タスク更新完了表示カード
@@ -87,39 +87,39 @@ app/
 
 ```mermaid
 graph TD
-    ChatContainer -->|messages, onSendMessage| ChatMessageList
-    ChatContainer -->|isLoading, onSendMessage| ChatInput
-    ChatMessageList -->|message| ChatMessage
-    ChatMessage -->|tool_calls| ToolCallBadge
-    ChatMessage -->|task_update_result| TaskUpdateConfirmation
-    ChatContainer -->|isAgentRunning| AgentThinkingIndicator
+    ChatWindow -->|messages, onSendMessage| MessageList
+    ChatWindow -->|isLoading, onSendMessage| MessageInput
+    MessageList -->|message| MessageBubble
+    MessageBubble -->|tool_calls| ToolCallBadge
+    MessageBubble -->|task_update_result| TaskUpdateConfirmation
+    ChatWindow -->|isAgentRunning| AgentThinkingIndicator
 ```
 
 ---
 
 ## 3. コンポーネント詳細設計
 
-### 3.1 ChatContainer.tsx
+### 3.1 ChatWindow.tsx
 
 **役割**: チャット画面全体の状態管理・SSE接続管理。
 
 ```typescript
-// app/components/chat/ChatContainer.tsx
+// app/components/chat/ChatWindow.tsx
 
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { ChatMessageList } from "./ChatMessageList";
-import { ChatInput } from "./ChatInput";
+import { MessageList } from "./MessageList";
+import { MessageInput } from "./MessageInput";
 import { AgentThinkingIndicator } from "./AgentThinkingIndicator";
 import { useChat } from "@/hooks/useChat";
 import type { Message } from "@/types/chat";
 
-interface ChatContainerProps {
+interface ChatWindowProps {
   conversationId: string;
 }
 
-export function ChatContainer({ conversationId }: ChatContainerProps) {
+export function ChatWindow({ conversationId }: ChatWindowProps) {
   const {
     messages,
     isLoading,
@@ -132,7 +132,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
     <div className="flex flex-col h-full">
       {/* メッセージ一覧エリア */}
       <div className="flex-1 overflow-y-auto p-4">
-        <ChatMessageList messages={messages} />
+        <MessageList messages={messages} />
         {isLoading && <AgentThinkingIndicator />}
       </div>
 
@@ -151,7 +151,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
 
       {/* 入力エリア */}
       <div className="border-t border-gray-200 p-4">
-        <ChatInput
+        <MessageInput
           onSendMessage={sendMessage}
           isDisabled={isLoading}
           placeholder="タスクの更新・コメント追加を指示してください..."
@@ -162,12 +162,12 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
 }
 ```
 
-### 3.2 ChatMessage.tsx
+### 3.2 MessageBubble.tsx
 
 **役割**: 個別メッセージの表示。ユーザーメッセージ・エージェント応答・ツール実行結果を表示する。
 
 ```typescript
-// app/components/chat/ChatMessage.tsx
+// app/components/chat/MessageBubble.tsx
 
 "use client";
 
@@ -177,11 +177,11 @@ import { ToolCallBadge } from "./ToolCallBadge";
 import { TaskUpdateConfirmation } from "./TaskUpdateConfirmation";
 import type { Message, ToolCall } from "@/types/chat";
 
-interface ChatMessageProps {
+interface MessageBubbleProps {
   message: Message;
 }
 
-export const ChatMessage = memo(function ChatMessage({ message }: ChatMessageProps) {
+export const MessageBubble = memo(function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
 
@@ -449,12 +449,12 @@ export function TaskUpdateConfirmation({ result }: TaskUpdateConfirmationProps) 
 }
 ```
 
-### 3.6 ChatInput.tsx
+### 3.6 MessageInput.tsx
 
 **役割**: テキスト入力欄と送信ボタン。Enterキーで送信、Shift+Enterで改行。
 
 ```typescript
-// app/components/chat/ChatInput.tsx
+// app/components/chat/MessageInput.tsx
 
 "use client";
 
@@ -463,13 +463,13 @@ import { Send } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
 
-interface ChatInputProps {
+interface MessageInputProps {
   onSendMessage: (content: string) => void;
   isDisabled: boolean;
   placeholder?: string;
 }
 
-export function ChatInput({ onSendMessage, isDisabled, placeholder }: ChatInputProps) {
+export function MessageInput({ onSendMessage, isDisabled, placeholder }: MessageInputProps) {
   const [inputValue, setInputValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -849,7 +849,7 @@ app/
 ```typescript
 // app/chat/page.tsx
 
-import { ChatContainer } from "@/components/chat/ChatContainer";
+import { ChatWindow } from "@/components/chat/ChatWindow";
 
 export default function ChatPage() {
   // 会話IDの生成・取得ロジック（初回アクセス時に新規会話を作成）
@@ -861,7 +861,7 @@ export default function ChatPage() {
           タスクの更新やコメント追加などを自然言語で指示できます
         </p>
       </div>
-      <ChatContainer conversationId="current" />
+      <ChatWindow conversationId="current" />
     </main>
   );
 }
@@ -1040,12 +1040,12 @@ function showTaskUpdateToast(result: TaskUpdateResult) {
 
 | コンポーネント | ARIA属性 | 目的 |
 |---|---|---|
-| ChatMessageList | `role="log"`, `aria-live="polite"` | スクリーンリーダーへの新着メッセージ通知 |
-| ChatMessage（ユーザー） | `aria-label="あなたのメッセージ"` | ロールの明示 |
-| ChatMessage（エージェント） | `aria-label="エージェントの応答"` | ロールの明示 |
+| MessageList | `role="log"`, `aria-live="polite"` | スクリーンリーダーへの新着メッセージ通知 |
+| MessageBubble（ユーザー） | `aria-label="あなたのメッセージ"` | ロールの明示 |
+| MessageBubble（エージェント） | `aria-label="エージェントの応答"` | ロールの明示 |
 | AgentThinkingIndicator | `role="status"`, `aria-live="polite"` | 処理中状態の通知 |
 | TaskUpdateConfirmation | `role="status"` | 更新完了の通知 |
-| ChatInput（Textarea） | `aria-label="メッセージ入力"` | 入力欄の説明 |
+| MessageInput（Textarea） | `aria-label="メッセージ入力"` | 入力欄の説明 |
 | 送信ボタン | `aria-label="送信"` | ボタンの説明 |
 
 ### 10.2 キーボード操作
@@ -1063,6 +1063,7 @@ function showTaskUpdateToast(result: TaskUpdateResult) {
 | 影響先 | 内容 |
 |---|---|
 | DSD-003_FEAT-003 | APIレスポンスのSSEイベント形式仕様の確認（tool_result のpayload構造） |
-| IMP-002_FEAT-003 | フロントエンド実装: useChat フック・ChatContainer・ToolCallBadge・TaskUpdateConfirmation のTDD実装 |
+| IMP-002_FEAT-003 | フロントエンド実装: useChat フック・ChatWindow・MessageBubble・ToolCallBadge・TaskUpdateConfirmation のTDD実装 |
 | IT-001_FEAT-003 | 結合テスト: チャット画面からタスク更新操作のE2Eフロー確認 |
 | DSD-008_FEAT-003 | フロントエンド単体テスト: useChat フックのSSEイベント処理テスト |
+| DSD-007 | チャットUIコンポーネント共通命名規則（セクション 5.3）に準拠すること |

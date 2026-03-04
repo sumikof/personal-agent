@@ -223,8 +223,21 @@ class Task:
 
 **概要**: Redmineのステータス定義に対応する値オブジェクト。不変。
 
+**設計方針（ISSUE-M02対応）**: Redmineのステータスは環境ごとに異なるため、ステータスIDは環境変数で設定可能にする。
+ハードコードは禁止する。環境変数が未設定の場合のみ、以下のデフォルト値を使用する。
+
+| 環境変数名 | 意味 | デフォルト値 |
+|---|---|---|
+| `REDMINE_STATUS_ID_OPEN` | 未着手ステータスのID | `1` |
+| `REDMINE_STATUS_ID_IN_PROGRESS` | 進行中ステータスのID | `2` |
+| `REDMINE_STATUS_ID_CLOSED` | 完了ステータスのID | `3` |
+| `REDMINE_STATUS_ID_REJECTED` | 却下ステータスのID | `5` |
+
 ```python
+import os
 from dataclasses import dataclass
+from functools import lru_cache
+
 
 @dataclass(frozen=True)
 class TaskStatus:
@@ -232,24 +245,25 @@ class TaskStatus:
     id: int
     name: str
 
-    # Redmineデフォルトステータス定数
-    OPEN: "TaskStatus"           # id=1 未着手
-    IN_PROGRESS: "TaskStatus"    # id=2 進行中
-    CLOSED: "TaskStatus"         # id=3 完了
-    REJECTED: "TaskStatus"       # id=5 却下
-
-    # 有効なステータスIDのセット（Redmineデフォルト設定）
-    VALID_STATUS_IDS = {1, 2, 3, 5}
+    @classmethod
+    @lru_cache(maxsize=1)
+    def _status_map(cls) -> dict[int, "TaskStatus"]:
+        """環境変数からステータスIDマッピングを構築する。"""
+        open_id = int(os.getenv("REDMINE_STATUS_ID_OPEN", "1"))
+        in_progress_id = int(os.getenv("REDMINE_STATUS_ID_IN_PROGRESS", "2"))
+        closed_id = int(os.getenv("REDMINE_STATUS_ID_CLOSED", "3"))
+        rejected_id = int(os.getenv("REDMINE_STATUS_ID_REJECTED", "5"))
+        return {
+            open_id: cls(id=open_id, name="未着手"),
+            in_progress_id: cls(id=in_progress_id, name="進行中"),
+            closed_id: cls(id=closed_id, name="完了"),
+            rejected_id: cls(id=rejected_id, name="却下"),
+        }
 
     @classmethod
     def from_id(cls, status_id: int) -> "TaskStatus":
         """ステータスIDからTaskStatusを生成する。"""
-        mapping = {
-            1: cls(id=1, name="未着手"),
-            2: cls(id=2, name="進行中"),
-            3: cls(id=3, name="完了"),
-            5: cls(id=5, name="却下"),
-        }
+        mapping = cls._status_map()
         if status_id not in mapping:
             raise ValueError(f"無効なステータスID: {status_id}。有効値: {list(mapping.keys())}")
         return mapping[status_id]
@@ -257,7 +271,23 @@ class TaskStatus:
     @classmethod
     def validate_id(cls, status_id: int) -> bool:
         """ステータスIDが有効範囲内かを検証する。"""
-        return status_id in cls.VALID_STATUS_IDS
+        return status_id in cls._status_map()
+
+    @classmethod
+    def open(cls) -> "TaskStatus":
+        return cls._status_map()[int(os.getenv("REDMINE_STATUS_ID_OPEN", "1"))]
+
+    @classmethod
+    def in_progress(cls) -> "TaskStatus":
+        return cls._status_map()[int(os.getenv("REDMINE_STATUS_ID_IN_PROGRESS", "2"))]
+
+    @classmethod
+    def closed(cls) -> "TaskStatus":
+        return cls._status_map()[int(os.getenv("REDMINE_STATUS_ID_CLOSED", "3"))]
+
+    @classmethod
+    def rejected(cls) -> "TaskStatus":
+        return cls._status_map()[int(os.getenv("REDMINE_STATUS_ID_REJECTED", "5"))]
 ```
 
 ### 4.3 TaskPriority 値オブジェクト

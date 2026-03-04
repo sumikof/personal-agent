@@ -922,6 +922,23 @@ frontend/
 | CSS クラス | Tailwind CSS の規則に従う | `bg-blue-500`, `text-gray-900` |
 | データ属性 | kebab-case | `data-testid="send-button"` |
 
+### 5.3 チャットUIコンポーネント共通命名規則
+
+チャット画面（SCR-003）を構成するコンポーネントは、FEAT-005（chat-ui）の設計を正本とし、全機能（FEAT-001/003/005等）で以下の名称を統一して使用すること。
+
+| コンポーネント役割 | 確定名称 | ファイルパス | 説明 |
+|---|---|---|---|
+| ページラッパー | `ChatPage` | `src/app/chat/page.tsx` | チャット画面のページエントリーポイント。Next.js App Router のページコンポーネント |
+| チャットウィンドウ | `ChatWindow` | `src/components/chat/ChatWindow.tsx` | メッセージ一覧と入力欄を含むチャット全体コンテナ。状態管理のエントリーポイント |
+| メッセージ一覧 | `MessageList` | `src/components/chat/MessageList.tsx` | メッセージ一覧の表示・自動スクロール制御 |
+| 個別メッセージ | `MessageBubble` | `src/components/chat/MessageBubble.tsx` | 個別メッセージのバブル表示（user/assistant で色分け） |
+| 入力欄 | `MessageInput` | `src/components/chat/MessageInput.tsx` | メッセージ入力欄・送信ボタン（Enter 送信・Shift+Enter 改行） |
+
+**適用ルール**:
+- 上記名称を別名（`ChatContainer`, `ChatMessageList`, `ChatMessage`, `ChatInput` 等）で定義・使用してはならない
+- FEAT 固有の拡張コンポーネント（`ToolCallBadge`, `TaskUpdateConfirmation`, `AgentThinkingIndicator` 等）は命名制限なし
+- 各 FEAT の DSD-002 でチャット関連コンポーネントを記述する場合は、本表の確定名称を参照すること
+
 ---
 
 ## 6. テスト規約
