@@ -4,9 +4,11 @@
  * MessageBubble コンポーネント。
  *
  * 単一メッセージのバブル表示。ユーザー/エージェントで外観（左右配置・色）を切り替える。
+ * エージェント応答は MarkdownContent でレンダリングする（FEAT-002）。
  */
 import { type FC } from "react";
 import type { Message } from "@/types/chat";
+import { MarkdownContent } from "./MarkdownContent";
 
 interface MessageBubbleProps {
   message: Message;
@@ -41,14 +43,13 @@ const MessageBubble: FC<MessageBubbleProps> = ({
             : "bg-gray-100 text-gray-900 rounded-tl-none"
         }`}
       >
-        {/* メッセージ内容 */}
-        <p className={`text-sm whitespace-pre-wrap ${isUser ? "text-white" : "text-gray-900"}`}>
-          {message.content}
-        </p>
-
-        {/* ストリーミング中カーソル */}
-        {isStreaming && isAssistant && (
-          <span className="animate-pulse inline-block w-2 h-4 bg-gray-500 ml-1 align-middle" />
+        {/* メッセージ内容: ユーザーはプレーンテキスト、エージェントは Markdown レンダリング */}
+        {isUser ? (
+          <p className="text-sm whitespace-pre-wrap text-white">
+            {message.content}
+          </p>
+        ) : (
+          <MarkdownContent content={message.content} isStreaming={isStreaming} />
         )}
 
         {/* タイムスタンプ */}
