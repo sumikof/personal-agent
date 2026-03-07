@@ -91,59 +91,139 @@
 
 ### 必要条件
 
-- Python 3.11+
-- Node.js 18+
-- Docker / Docker Compose
-- Anthropic API キー
+| ツール | バージョン | 用途 |
+|--------|-----------|------|
+| Python | 3.11+ | バックエンド実行環境 |
+| Node.js | 18+ | フロントエンド実行環境 |
+| Docker / Docker Compose | 最新版 | Redmine・PostgreSQL の起動 |
+| Anthropic API キー | - | Claude API 呼び出し |
 
-### 1. 環境変数の設定
+---
 
-`.env.example` をコピーして `.env` を作成してください。
+### 1. リポジトリのクローン
 
 ```bash
-cp .env.example .env
+git clone <repository-url>
+cd personal-agent
 ```
 
-```env
+---
+
+### 2. 環境変数の設定
+
+プロジェクトルートに `.env` ファイルを作成し、以下の内容を記入してください。
+
+```bash
+# .env
 # Anthropic Claude API
 ANTHROPIC_API_KEY=your_anthropic_api_key
 
 # Redmine
 REDMINE_URL=http://localhost:8080
 REDMINE_API_KEY=your_redmine_api_key
+
+# PostgreSQL
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/personal_agent
 ```
 
 > **注意**: `.env` ファイルには機密情報が含まれます。Git にコミットしないでください（`.gitignore` 設定済み）。
 
-### 2. Redmine の起動
+---
+
+### 3. Redmine・PostgreSQL の起動
+
+Docker Compose で Redmine と PostgreSQL を起動します。
 
 ```bash
-docker compose up -d redmine
+docker compose up -d
 ```
 
-Redmine 起動後、`http://localhost:8080` にアクセスして初期設定を行い、API キーを取得してください。
-
-### 3. バックエンドのセットアップ
+起動確認:
 
 ```bash
+docker compose ps
+```
+
+Redmine が起動したら `http://localhost:8080` にアクセスし、初期設定を行います。
+
+**Redmine API キーの取得手順:**
+
+1. `http://localhost:8080` にログイン（初期アカウント: `admin` / `admin`）
+2. 右上のアカウントメニュー → **「個人設定」** を開く
+3. **「APIアクセスキー」** を表示してコピー
+4. コピーしたキーを `.env` の `REDMINE_API_KEY` に設定する
+
+---
+
+### 4. バックエンドのセットアップ
+
+```bash
+cd backend
+
+# 仮想環境の作成・有効化（推奨）
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+# 依存パッケージのインストール
 pip install -r requirements.txt
-python main.py
+
+# DBマイグレーション
+alembic upgrade head
+
+# バックエンドの起動
+uvicorn app.main:app --reload --port 8000
 ```
 
-### 4. フロントエンドのセットアップ
+---
+
+### 5. フロントエンドのセットアップ
+
+別ターミナルで実行してください。
 
 ```bash
 cd frontend
+
+# 依存パッケージのインストール
 npm install
+
+# フロントエンドの起動
 npm run dev
 ```
 
-### 5. 動作確認
+---
 
-- チャット UI: http://localhost:3000
-- ダッシュボード: http://localhost:3000/dashboard
-- Redmine: http://localhost:8080
-- バックエンド API: http://localhost:8000
+### 6. 動作確認
+
+すべてのサービスが起動したら以下の URL にアクセスして確認します。
+
+| サービス | URL | 説明 |
+|---------|-----|------|
+| チャット UI | http://localhost:3000 | エージェントとの会話画面 |
+| ダッシュボード | http://localhost:3000/dashboard | タスク一覧・可視化 |
+| バックエンド API | http://localhost:8000/docs | FastAPI 自動生成 API ドキュメント |
+| Redmine | http://localhost:8080 | タスク管理画面 |
+
+---
+
+### テストの実行
+
+**バックエンド:**
+
+```bash
+cd backend
+pytest
+# カバレッジレポート付き
+pytest --cov=app --cov-report=term-missing
+```
+
+**フロントエンド:**
+
+```bash
+cd frontend
+npm test
+# カバレッジレポート付き
+npm run test:coverage
+```
 
 ---
 
